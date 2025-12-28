@@ -5,159 +5,221 @@
   <title>AES Stream Portal (Demo)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <div class="container">
-    <h1>AES Stream Portal — Demo</h1>
+<div class="container">
+  <h1>AES Stream Portal — Demo</h1>
 
-    <div class="controls">
-      <div>
-        <label>Upload file (server encrypt & broadcast):</label><br/>
-        <input id="fileInput" type="file" />
-        <button id="uploadBtn">Encrypt & Broadcast</button>
-      </div>
-
-      <div style="margin-top:12px;">
-        <label>Real-time streaming (client-side encrypt):</label><br/>
-        <button id="startStreamBtn">Start Streaming</button>
-        <button id="stopStreamBtn" disabled>Stop Streaming</button>
-        <label for="intervalMs">Interval ms:</label>
-        <input id="intervalMs" type="number" value="1000" style="width:80px"/>
-      </div>
+  <div class="controls">
+    <div>
+      <label>Upload file (server encrypt & broadcast):</label><br/>
+      <input id="fileInput" type="file"/>
+      <button id="uploadBtn">Encrypt & Broadcast</button>
     </div>
 
-    <h2>Live Logs</h2>
-    <div id="logs" class="logs"></div>
+    <div style="margin-top:12px;">
+      <label>Real-time streaming (AGC Excel data):</label><br/>
+      <button id="startStreamBtn">Start Streaming</button>
+      <button id="stopStreamBtn">Stop / Export CSV</button>
+      <label>Interval ms:</label>
+      <input id="intervalMs" type="number" value="1000" style="width:80px"/>
+    </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const logs = document.getElementById('logs');
-    function addLog(msg, color='white'){ const d=document.createElement('div'); d.style.color=color; d.innerHTML = '['+new Date().toLocaleTimeString()+'] '+msg; logs.appendChild(d); logs.scrollTop = logs.scrollHeight; }
+  <h2>Encryption → Decryption View (Client Side)</h2>
+  <div id="cryptoView" style="background:#020617;padding:12px;border-radius:8px;">
+    <strong style="color:#38bdf8;">Encrypted (Ciphertext Preview)</strong>
+    <pre id="encryptedPreview" style="color:#facc15;"></pre>
 
-    // load demo key from server (DEMO ONLY)
-    let AES_KEY = null; // CryptoKey
-    let RAW_KEY_BASE64 = null;
-    async function loadKey(){
-      try {
-        const r = await fetch('/get_key');
-        const j = await r.json();
-        RAW_KEY_BASE64 = j.key_base64;
-        const raw = Uint8Array.from(atob(RAW_KEY_BASE64), c => c.charCodeAt(0));
-        AES_KEY = await crypto.subtle.importKey('raw', raw.buffer, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
-        addLog('Imported demo AES key from server.', 'lime');
-      } catch(e){ addLog('Failed to load key: '+e.message,'red'); }
+    <strong style="color:#22c55e;">Decrypted (Original Data)</strong>
+    <pre id="decryptedPreview" style="color:#a7f3d0;"></pre>
+  </div>
+
+  <h2>Live Logs</h2>
+  <div id="logs" class="logs"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+/* =============================
+   BASIC SETUP
+============================= */
+const socket = io();
+const logs = document.getElementById("logs");
+
+function addLog(msg,color="white"){
+  const d=document.createElement("div");
+  d.style.color=color;
+  d.innerHTML=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  logs.appendChild(d);
+  logs.scrollTop=logs.scrollHeight;
+}
+
+/* =============================
+   LOAD DEMO AES KEY
+============================= */
+let AES_KEY=null;
+
+async function loadKey(){
+  const r=await fetch("/get_key");
+  const j=await r.json();
+  const raw=Uint8Array.from(atob(j.key_base64),c=>c.charCodeAt(0));
+  AES_KEY=await crypto.subtle.importKey(
+    "raw",raw.buffer,{name:"AES-GCM"},false,["encrypt","decrypt"]
+  );
+  addLog("Imported demo AES key from server.","lime");
+}
+loadKey();
+
+/* =============================
+   UTILS
+============================= */
+function randIV(){
+  const iv=new Uint8Array(12);
+  crypto.getRandomValues(iv);
+  return iv;
+}
+function bufToB64(buf){
+  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+}
+function bufToHex(buf){
+  return Array.from(new Uint8Array(buf))
+    .map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function hexToUint8(hex){
+  const a=new Uint8Array(hex.length/2);
+  for(let i=0;i<hex.length;i+=2)
+    a[i/2]=parseInt(hex.substr(i,2),16);
+  return a;
+}
+
+/* =============================
+   AGC DATA (EXCEL → JS)
+============================= */
+const agcData = [
+  {Timestamp:"10-4-2024 12:0:0 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:4 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:8 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:12 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:16 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:20 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:24 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:28 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:32 AM",Frequency:50.03,AGC_U1:247,ULSP_U1:248},
+  {Timestamp:"10-4-2024 12:0:36 AM",Frequency:50.03,AGC_U1:247,ULSP_U1:248},
+  /* 🔁 CONTINUE PASTING UNTIL 100+ ROWS (same format) */
+];
+
+/* =============================
+   FILE UPLOAD (SERVER)
+============================= */
+document.getElementById("uploadBtn").onclick=async()=>{
+  const f=document.getElementById("fileInput").files[0];
+  if(!f) return alert("Choose file");
+  const arr=await f.arrayBuffer();
+  const b64=bufToB64(arr);
+
+  addLog("Uploading file for encryption & broadcast…","cyan");
+  await fetch("/upload-and-broadcast",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      filename:f.name,
+      filetype:f.type||"application/octet-stream",
+      filedata:b64
+    })
+  });
+};
+
+/* =============================
+   STREAMING (AGC DATA)
+============================= */
+let streamTimer=null;
+let decryptedDataBuffer=[];
+
+async function encryptChunk(bytes){
+  const iv=randIV();
+  const ct=await crypto.subtle.encrypt(
+    {name:"AES-GCM",iv},AES_KEY,bytes
+  );
+  return {iv:bufToHex(iv.buffer),ciphertext:bufToB64(ct)};
+}
+
+/* RECEIVER */
+socket.on("stream_chunk",async(data)=>{
+  document.getElementById("encryptedPreview").textContent=
+    data.ciphertext.substring(0,120)+"...";
+
+  try{
+    const iv=hexToUint8(data.iv);
+    const ct=Uint8Array.from(atob(data.ciphertext),c=>c.charCodeAt(0));
+    const plain=await crypto.subtle.decrypt(
+      {name:"AES-GCM",iv},AES_KEY,ct
+    );
+    const txt=new TextDecoder().decode(plain);
+    document.getElementById("decryptedPreview").textContent=txt;
+
+    decryptedDataBuffer.push(JSON.parse(txt));
+    addLog("Decrypted row buffered ("+decryptedDataBuffer.length+")","lime");
+  }catch(e){
+    addLog("Decrypt error: "+e.message,"red");
+  }
+});
+
+/* SENDER (NO RANDOM DATA ANYMORE) */
+document.getElementById("startStreamBtn").onclick=()=>{
+  decryptedDataBuffer=[];
+  let i=0;
+  const ms=parseInt(intervalMs.value)||1000;
+
+  streamTimer=setInterval(async()=>{
+    if(i>=agcData.length){
+      clearInterval(streamTimer);
+      addLog("All AGC rows sent.","orange");
+      return;
     }
-    loadKey();
 
-    // helper conversions
-    function bufToB64(buf){ const b = new Uint8Array(buf); let s=''; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
-    function bufToHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-    function hexToUint8(hex){ const arr = new Uint8Array(hex.length/2); for(let i=0;i<hex.length;i+=2) arr[i/2]=parseInt(hex.substr(i,2),16); return arr; }
+    const row=agcData[i];
+    const bytes=new TextEncoder().encode(JSON.stringify(row));
+    const enc=await encryptChunk(bytes);
+    socket.emit("stream_chunk",enc);
+    addLog("Sent encrypted AGC row "+i,"cyan");
+    i++;
+  },ms);
+};
 
-    // server-side file upload -> server encrypts and broadcasts
-    document.getElementById('uploadBtn').onclick = async () => {
-      const f = document.getElementById('fileInput').files[0];
-      if(!f) return alert('choose a file');
-      addLog('Reading file: '+f.name,'gray');
-      const arr = await f.arrayBuffer();
-      const b64 = bufToB64(arr);
-      addLog('Uploading file to server for encrypt & broadcast: '+f.name,'cyan');
-      const res = await fetch('/upload-and-broadcast', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ filename: f.name, filetype: f.type || 'application/octet-stream', filedata: b64 })
-      });
-      if(!res.ok){ addLog('Upload failed','red'); } else addLog('Upload sent; waiting for server broadcast...','lime');
-    };
+/* =============================
+   STOP / EXPORT CSV
+============================= */
+function exportCSV(data){
+  if(!data.length){
+    addLog("No decrypted data to export","red");
+    return;
+  }
+  const headers=Object.keys(data[0]);
+  const rows=data.map(r=>headers.map(h=>r[h]).join(","));
+  const csv=headers.join(",")+"\n"+rows.join("\n");
 
-    // handle server-server encrypted broadcast (server encrypted)
-    socket.on('encrypted_broadcast', async (data) => {
-      addLog(`Encrypted broadcast received for ${data.filename}`, 'yellow');
-      // request server to decrypt and return plaintext (auto-download)
-      addLog('Requesting server to decrypt and return file (auto-download)...', 'gray');
-      try {
-        const r = await fetch('/decrypt-file', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            filename: data.filename, filetype: data.filetype, iv: data.iv, authTag: data.authTag, content: data.content
-          })
-        });
-        if(!r.ok){ addLog('Server decryption failed','red'); return; }
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href=url; a.download = data.filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-        addLog('Downloaded decrypted file: '+data.filename, 'lime');
-      } catch(e){ addLog('Error requesting server decrypt: '+e.message,'red'); }
-    });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="agc_decrypted_"+Date.now()+".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
-    // ----- STREAMING: client-side encryption -----
-    // sender will call startStreaming() which calls encryptChunk and emits stream_chunk
-    function randIV(){ const iv = new Uint8Array(12); crypto.getRandomValues(iv); return iv; }
-
-    async function encryptChunkBytes(bytes){
-      const iv = randIV();
-      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, AES_KEY, bytes);
-      return { iv: bufToHex(iv.buffer), ciphertext: bufToB64(ct), ts: Date.now() };
-    }
-
-    socket.on('stream_chunk', async (data) => {
-      // receiver decrypts chunk in browser
-      addLog('Encrypted stream chunk received (ts='+data.ts+')','yellow');
-      try {
-        const iv = hexToUint8(data.iv);
-        const ct = Uint8Array.from(atob(data.ciphertext), c => c.charCodeAt(0));
-        const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, AES_KEY, ct);
-        // try parse JSON
-        try {
-          const txt = new TextDecoder().decode(plainBuf);
-          const obj = JSON.parse(txt);
-          addLog('Decrypted stream JSON: '+JSON.stringify(obj).slice(0,120), 'lime');
-        } catch(e){
-          addLog('Decrypted binary chunk size '+plainBuf.byteLength, 'lime');
-        }
-      } catch(e){ addLog('Decrypt error: '+e.message,'red'); }
-    });
-
-    // streaming control
-    let streamTimer = null;
-    document.getElementById('startStreamBtn').onclick = () => {
-      const ms = parseInt(document.getElementById('intervalMs').value) || 1000;
-      if(!AES_KEY){ addLog('Key not loaded', 'red'); return; }
-      if(streamTimer) clearInterval(streamTimer);
-      let i=0;
-      streamTimer = setInterval(async () => {
-        // create fake sample signal
-        const sample = { ts: new Date().toISOString(), ch1: Math.sin(i/4)+(Math.random()-0.5)*0.05, ch2: 0.001*i+(Math.random()-0.5)*0.02, seq:i };
-        const bytes = new TextEncoder().encode(JSON.stringify(sample));
-        const enc = await encryptChunkBytes(bytes);
-        socket.emit('stream_chunk', enc);
-        addLog('Sent encrypted stream chunk seq='+i, 'cyan');
-        i++;
-      }, ms);
-      addLog('Streaming started every '+ms+'ms','lime');
-      document.getElementById('startStreamBtn').disabled = true;
-      document.getElementById('stopStreamBtn').disabled = false;
-    };
-
-    document.getElementById('stopStreamBtn').onclick = () => {
-      if(streamTimer) clearInterval(streamTimer);
-      streamTimer = null;
-      addLog('Streaming stopped','gray');
-      document.getElementById('startStreamBtn').disabled = false;
-      document.getElementById('stopStreamBtn').disabled = true;
-    };
-
-    // utility: convert buffer to hex
-    function bufToHex(buf){ return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-    function hexToUint8(hex){ const arr=new Uint8Array(hex.length/2); for(let i=0;i<hex.length;i+=2) arr[i/2]=parseInt(hex.substr(i,2),16); return arr; }
-
-    // import key now after page loads (the loadKey call above in code will fetch via /get_key)
-    // Note: loadKey already executed above in script scope? If not, we call it here
-    // (But in this file loadKey is defined earlier and invoked.)
-
-  </script>
-
+document.getElementById("stopStreamBtn").onclick=()=>{
+  if(streamTimer){
+    clearInterval(streamTimer);
+    streamTimer=null;
+    addLog("Streaming stopped.","gray");
+  }
+  exportCSV(decryptedDataBuffer);
+  decryptedDataBuffer=[];
+};
+</script>
 </body>
 </html>
