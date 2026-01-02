@@ -26,7 +26,7 @@
     </div>
   </div>
 
-  <h2>Encryption → Decryption View (Client Side)</h2>
+  <h2>Encryption → Decryption View</h2>
   <div id="cryptoView" style="background:#020617;padding:12px;border-radius:8px;">
     <strong style="color:#38bdf8;">Encrypted (Ciphertext Preview)</strong>
     <pre id="encryptedPreview" style="color:#facc15;"></pre>
@@ -93,26 +93,53 @@ function hexToUint8(hex){
   return a;
 }
 
-/* =============================
-   AGC DATA (EXCEL → JS)
-============================= */
 const agcData = [
-  {Timestamp:"10-4-2024 12:0:0 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:4 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:8 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:12 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:16 AM",Frequency:50.01,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:20 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:24 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:28 AM",Frequency:50.02,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:32 AM",Frequency:50.03,AGC_U1:247,ULSP_U1:248},
-  {Timestamp:"10-4-2024 12:0:36 AM",Frequency:50.03,AGC_U1:247,ULSP_U1:248},
-  /* 🔁 CONTINUE PASTING UNTIL 100+ ROWS (same format) */
+  { Timestamp: "10-4-2024 12:0:0 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:4 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:8 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:12 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:16 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:20 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:24 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:28 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:32 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:36 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:40 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:44 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:48 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:52 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:0:56 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:0 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:4 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:8 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:12 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:16 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:20 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:24 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:28 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:32 AM", Frequency: 50.00, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:36 AM", Frequency: 50.00, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:1:40 AM", Frequency: 50.00, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:2:0 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:2:20 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:2:40 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:3:4 AM", Frequency: 50.04, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:3:24 AM", Frequency: 50.03, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:3:36 AM", Frequency: 50.02, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:3:40 AM", Frequency: 50.01, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:4:0 AM", Frequency: 49.99, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:4:8 AM", Frequency: 49.98, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:4:16 AM", Frequency: 49.97, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:4:20 AM", Frequency: 49.96, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:5:0 AM", Frequency: 49.98, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:5:20 AM", Frequency: 49.97, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:6:0 AM", Frequency: 49.97, AGC_U1: 247, ULSP_U1: 248 },
+  { Timestamp: "10-4-2024 12:6:36 AM", Frequency: 49.97, AGC_U1: 247, ULSP_U1: 248 }
 ];
 
-/* =============================
-   FILE UPLOAD (SERVER)
-============================= */
+
+
+
 document.getElementById("uploadBtn").onclick=async()=>{
   const f=document.getElementById("fileInput").files[0];
   if(!f) return alert("Choose file");
