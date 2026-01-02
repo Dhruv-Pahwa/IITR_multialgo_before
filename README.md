@@ -6,4 +6,4 @@ enc/dec data visible
 
 file can be attached but can't be sent(to be fixed)
 
-AES-56-GCM used
+AES-256-GCM used
